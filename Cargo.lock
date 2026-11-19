@@ -4393,7 +4393,7 @@ dependencies = [
 
 [[package]]
 name = "sloptify"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "dioxus",
@@ -4412,7 +4412,7 @@ dependencies = [
 
 [[package]]
 name = "sloptify-ext"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "reqwest",
@@ -4425,7 +4425,7 @@ dependencies = [
 
 [[package]]
 name = "sloptify-spotify"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "futures-util",

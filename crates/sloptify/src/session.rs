@@ -1,8 +1,9 @@
 //! Session boot mirrors Sloptify Android: hidden Web Player always on, login only when needed.
 
 use sloptify_spotify::{
-    is_login_url, Bridge, BridgeSnapshot, ChromiumConfig, ChromiumSession, CdpHost, ContextPage,
-    AdWatch, HomeFeed, HomeItem, Player, SpotifyCatalog, StallWatch, UserProfile, DEFAULT_CDP_URL,
+    is_accounts_post_auth_url, is_login_url, is_web_player_url, Bridge, BridgeSnapshot,
+    ChromiumConfig, ChromiumSession, CdpHost, ContextPage, AdWatch, HomeFeed, HomeItem, Player,
+    SpotifyCatalog, StallWatch, UserProfile, DEFAULT_CDP_URL,
 };
 use serde::Serialize;
 use tokio::sync::{mpsc, watch};
@@ -222,6 +223,9 @@ pub fn spawn_session() -> SessionHandle {
             let mut cdp_url = DEFAULT_CDP_URL.to_string();
             let mut awaiting_login = false;
             let mut login_signed_ticks: u8 = 0;
+            let mut login_nudge_at = std::time::Instant::now()
+                .checked_sub(std::time::Duration::from_secs(30))
+                .unwrap_or_else(std::time::Instant::now);
             let mut stall_watch = StallWatch::default();
             let mut ad_watch = AdWatch::default();
             // Fast while playing so ads are silenced before they are heard; idle stays cheap.
@@ -341,10 +345,31 @@ pub fn spawn_session() -> SessionHandle {
                             }
                             if awaiting_login {
                                 tick_ms = 200;
+                                let url = p.page_url().await.unwrap_or_default();
+                                // OAuth often stops on accounts.spotify.com/.../status inside
+                                // the --app window. Nudge it onto the web player so the bridge
+                                // can read the token.
+                                if is_accounts_post_auth_url(&url)
+                                    && login_nudge_at.elapsed()
+                                        > std::time::Duration::from_secs(1)
+                                {
+                                    login_nudge_at = std::time::Instant::now();
+                                    log_line(
+                                        &state_tx,
+                                        "Auth finished on accounts status — opening Web Player",
+                                    );
+                                    push(&state_tx, |s| {
+                                        s.status =
+                                            "Sign-in OK. Opening Spotify Web Player…".into();
+                                    });
+                                    let _ = p
+                                        .bridge()
+                                        .navigate("https://open.spotify.com/")
+                                        .await;
+                                }
                                 let _ = p.bridge().inject().await;
                                 let url = p.page_url().await.unwrap_or_default();
-                                let on_player = url.starts_with("https://open.spotify.com")
-                                    && !is_login_url(&url);
+                                let on_player = is_web_player_url(&url);
                                 // Need the real web player + a non-anonymous token.
                                 // accounts.spotify.com has no bridge services.
                                 signed_in = on_player
@@ -512,8 +537,32 @@ pub fn spawn_session() -> SessionHandle {
                     }
 
                     UiCommand::ContinueAfterLogin => {
-                        player = None;
                         catalog = None;
+                        push(&state_tx, |s| {
+                            s.status = "Checking Spotify sign-in…".into();
+                        });
+                        if let Some(p) = player.as_ref() {
+                            let url = p.page_url().await.unwrap_or_default();
+                            if !is_web_player_url(&url) {
+                                let _ = p
+                                    .bridge()
+                                    .navigate("https://open.spotify.com/")
+                                    .await;
+                                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                            }
+                            let _ = p.bridge().inject().await;
+                            let _ = p.bridge().wait_ready(std::time::Duration::from_secs(30)).await;
+                            if !matches!(p.token_anonymous().await, Ok(Some(false))) {
+                                push(&state_tx, |s| {
+                                    s.phase = Phase::NeedsLogin;
+                                    s.status = "Still signed out in the Spotify window. Finish login, then press continue.".into();
+                                });
+                                continue;
+                            }
+                            let _ = p.bridge().browser_close().await;
+                            tokio::time::sleep(std::time::Duration::from_millis(700)).await;
+                        }
+                        player = None;
                         if let Some(session) = chromium.as_mut() {
                             if let Err(err) = session.relaunch_as(false).await {
                                 log_line(&state_tx, format!("hide relaunch: {err}"));
@@ -524,14 +573,17 @@ pub fn spawn_session() -> SessionHandle {
                         match reattach(&cdp_url).await {
                             Ok(p2) => {
                                 match boot_ready(&p2, &mut catalog, &state_tx).await {
-                                    Ok(()) => {},
+                                    Ok(()) => {
+                                        awaiting_login = false;
+                                        login_signed_ticks = 0;
+                                    }
                                     Err(err) => push(&state_tx, |s| {
                                         s.phase = Phase::NeedsLogin;
+                                        s.login_visible = false;
                                         s.status = format!("{err}");
                                     }),
                                 }
                                 player = Some(p2);
-                                awaiting_login = false;
                             }
                             Err(err) => push(&state_tx, |s| {
                                 s.phase = Phase::Error;

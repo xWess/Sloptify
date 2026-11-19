@@ -36,6 +36,7 @@ pub fn app() -> Element {
     let mut catalog = use_signal(|| CatalogSlice {
         phase: Phase::Starting,
         status: "Starting…".into(),
+        login_visible: false,
         home: Default::default(),
         search_results: Vec::new(),
         library: Vec::new(),
@@ -73,6 +74,7 @@ pub fn app() -> Element {
                     let next_cat = CatalogSlice {
                         phase: s.phase,
                         status: s.status.clone(),
+                        login_visible: s.login_visible,
                         home: s.home.clone(),
                         search_results: s.search_results.clone(),
                         library: s.library.clone(),
@@ -198,10 +200,29 @@ pub fn app() -> Element {
                 div { class: "flex h-full flex-col items-center justify-center gap-5 px-6 text-center",
                     h1 { class: "text-[3rem] font-bold tracking-[-0.04em]", "Sloptify" }
                     p { class: "text-muted-foreground max-w-[360px] leading-relaxed", "{cat.status}" }
-                    button {
-                        class: "rounded-full bg-primary px-9 py-3.5 text-base font-bold text-primary-foreground",
-                        onclick: move |_| send(&session_cmd, UiCommand::ShowLogin),
-                        "Log in with Spotify"
+                    if cat.login_visible {
+                        button {
+                            class: "rounded-full bg-primary px-9 py-3.5 text-base font-bold text-primary-foreground",
+                            onclick: {
+                                let session_cmd = session_cmd.clone();
+                                move |_| send(&session_cmd, UiCommand::ContinueAfterLogin)
+                            },
+                            "I'm signed in — continue"
+                        }
+                        button {
+                            class: "rounded-full border border-white/20 px-9 py-3 text-base font-semibold",
+                            onclick: {
+                                let session_cmd = session_cmd.clone();
+                                move |_| send(&session_cmd, UiCommand::ShowLogin)
+                            },
+                            "Open login window again"
+                        }
+                    } else {
+                        button {
+                            class: "rounded-full bg-primary px-9 py-3.5 text-base font-bold text-primary-foreground",
+                            onclick: move |_| send(&session_cmd, UiCommand::ShowLogin),
+                            "Log in with Spotify"
+                        }
                     }
                     p { class: "text-muted-foreground text-[0.85rem]",
                         "One-time sign-in. The Web Player stays hidden after that."

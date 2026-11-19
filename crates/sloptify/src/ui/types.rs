@@ -46,6 +46,7 @@ pub struct CtxMenu {
 pub struct CatalogSlice {
     pub phase: crate::session::Phase,
     pub status: String,
+    pub login_visible: bool,
     pub home: HomeFeed,
     pub search_results: Vec<HomeItem>,
     pub library: Vec<HomeItem>,

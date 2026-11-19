@@ -16,7 +16,7 @@ mod messages;
 mod player;
 mod window;
 
-pub use login::is_login_url;
+pub use login::{is_accounts_post_auth_url, is_login_url, is_web_player_url};
 
 pub use bridge::{Bridge, BridgeError, BridgeSnapshot, PLAYER_BRIDGE_JS};
 pub use catalog::{

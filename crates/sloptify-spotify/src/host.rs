@@ -368,8 +368,27 @@ impl CdpHost {
     /// Navigate the Spotify tab (Sloptify `WebPlayerHost` reload → `playerRoot()`).
     ///
     /// Idle `/preferences` swallows both CDP `Page.navigate` and `location.assign`.
-    /// Prefer clicking Spotify's own home link (SPA router); fall back to assign / CDP.
+    /// Cross-origin jumps (accounts.spotify.com → open.spotify.com after OAuth) must
+    /// use CDP `Page.navigate` — `location.assign` is flaky in the --app window.
     pub async fn navigate(&self, url: &str) -> Result<()> {
+        let current = self.current_url().await.unwrap_or_default();
+        let cross_origin = {
+            let cur_host = url::Url::parse(&current)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h.to_ascii_lowercase()));
+            let dst_host = url::Url::parse(url)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h.to_ascii_lowercase()));
+            match (cur_host, dst_host) {
+                (Some(a), Some(b)) => a != b,
+                _ => true,
+            }
+        };
+        if cross_origin {
+            self.send("Page.navigate", json!({ "url": url })).await?;
+            return Ok(());
+        }
+
         let url_json = serde_json::to_string(url).unwrap_or_else(|_| "\"https://open.spotify.com/\"".into());
         let script = format!(
             r#"(function(u){{
