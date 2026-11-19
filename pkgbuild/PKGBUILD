@@ -4,7 +4,7 @@
 pkgname=sloptify
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="Sloptify desktop — Spotify client (Web Player over CDP)"
+pkgdesc="Desktop Spotify client for Linux"
 arch=('x86_64')
 url="https://github.com/wesssimp/Sloptify"
 license=('GPL-3.0-only')

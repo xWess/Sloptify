@@ -1,5 +1,5 @@
 pkgbase = sloptify
-	pkgdesc = Sloptify desktop — Spotify client (Web Player over CDP)
+	pkgdesc = Desktop Spotify client for Linux
 	pkgver = 0.1.0
 	pkgrel = 1
 	url = https://github.com/xWess/Sloptify

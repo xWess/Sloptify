@@ -3,7 +3,7 @@ name = "sloptify-ext"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Sloptify plugin marketplace + extension manifests (JS runtime next)"
+description = "Sloptify plugin marketplace"
 
 [dependencies]
 anyhow.workspace = true

@@ -3,7 +3,7 @@ name = "sloptify"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Sloptify desktop music player (Arch-first)"
+description = "Desktop Spotify client"
 
 [[bin]]
 name = "sloptify"

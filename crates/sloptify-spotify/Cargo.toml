@@ -3,7 +3,7 @@ name = "sloptify-spotify"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Spotify Web Player host over CDP for Sloptify desktop"
+description = "Spotify Web Player host for Sloptify"
 
 [[bin]]
 name = "inject_probe"
