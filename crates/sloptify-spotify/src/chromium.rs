@@ -26,6 +26,9 @@ pub struct ChromiumConfig {
     pub debugging_port: u16,
     /// Show the window (needed once for Spotify login). After that we hide it.
     pub visible: bool,
+    /// Wipe GPU/code caches on spawn. Disable when flipping login↔hidden so the
+    /// session cookies stay warm and the bridge comes back quickly.
+    pub prune_caches: bool,
 }
 
 impl Default for ChromiumConfig {
@@ -40,6 +43,7 @@ impl Default for ChromiumConfig {
             debugging_port: 9222,
             // Like Android's hidden WebView: never show unless login is required.
             visible: false,
+            prune_caches: true,
         }
     }
 }
@@ -368,6 +372,8 @@ impl ChromiumSession {
         self.stop();
         let mut cfg = self.config.clone();
         cfg.visible = visible;
+        // Keep caches/cookies warm across the login hide flip.
+        cfg.prune_caches = false;
         // Always clear stale processes before flipping display mode.
         kill_stale_sloptify_player(&cfg);
         *self = Self::spawn(cfg).await?;
@@ -380,7 +386,9 @@ impl ChromiumSession {
 
         std::fs::create_dir_all(&config.user_data_dir)
             .with_context(|| format!("create {}", config.user_data_dir.display()))?;
-        prune_player_caches(&config.user_data_dir);
+        if config.prune_caches {
+            prune_player_caches(&config.user_data_dir);
+        }
 
         let mut xvfb = None;
         let share = config

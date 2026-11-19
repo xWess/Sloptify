@@ -353,6 +353,18 @@ impl CdpHost {
         Ok(())
     }
 
+    /// Ask Chromium to quit cleanly so cookies from a just-finished login hit disk.
+    pub async fn browser_close(&self) -> Result<()> {
+        match self.send("Browser.close", json!({})).await {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                // Process may already be going away — still count as success for settle.
+                tracing::debug!(%err, "Browser.close");
+                Ok(())
+            }
+        }
+    }
+
     /// Navigate the Spotify tab (Sloptify `WebPlayerHost` reload → `playerRoot()`).
     ///
     /// Idle `/preferences` swallows both CDP `Page.navigate` and `location.assign`.

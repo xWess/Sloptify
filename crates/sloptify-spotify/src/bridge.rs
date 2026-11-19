@@ -301,6 +301,10 @@ impl Bridge {
         self.host.navigate(url).await
     }
 
+    pub async fn browser_close(&self) -> Result<()> {
+        self.host.browser_close().await
+    }
+
     /// Spotify idles on `/preferences` after a while; the bridge can still say
     /// ready while GraphQL / playback are stuck. Force the player root.
     pub async fn ensure_player_root(&self) -> Result<(), BridgeError> {

@@ -159,6 +159,18 @@ async fn boot_ready(
     state_tx: &watch::Sender<UiState>,
 ) -> anyhow::Result<()> {
     player.ensure_ready().await?;
+    // Never mark Ready on a guest shell — that was the "empty account" after a
+    // login that lost cookies when Chromium was killed too early.
+    match player.token_anonymous().await {
+        Ok(Some(true)) => {
+            anyhow::bail!("Spotify session is still anonymous");
+        }
+        Ok(None) => {
+            anyhow::bail!("Spotify token unavailable");
+        }
+        Ok(Some(false)) => {}
+        Err(err) => anyhow::bail!("Spotify token check failed: {err}"),
+    }
     *catalog = Some(SpotifyCatalog::new(player.bridge()));
     if let Some(cat) = catalog {
         match cat.home("").await {
@@ -166,7 +178,7 @@ async fn boot_ready(
                 push(state_tx, |s| {
                     s.home = feed;
                 });
-                            }
+            }
             Err(err) => log_line(state_tx, format!("home: {err}")),
         }
         match cat.library("").await {
@@ -328,39 +340,98 @@ pub fn spawn_session() -> SessionHandle {
                                 }
                             }
                             if awaiting_login {
+                                tick_ms = 200;
                                 let _ = p.bridge().inject().await;
-                                // Only trust an explicit non-anonymous token. The old
-                                // "ready + not on /login" fallback closed the window the
-                                // moment open.spotify.com loaded for a guest session.
-                                signed_in = matches!(p.token_anonymous().await, Ok(Some(false)));
+                                let url = p.page_url().await.unwrap_or_default();
+                                let on_player = url.starts_with("https://open.spotify.com")
+                                    && !is_login_url(&url);
+                                // Need the real web player + a non-anonymous token.
+                                // accounts.spotify.com has no bridge services.
+                                signed_in = on_player
+                                    && matches!(p.token_anonymous().await, Ok(Some(false)));
+                                if signed_in && login_signed_ticks == 0 {
+                                    log_line(
+                                        &state_tx,
+                                        "Login detected — waiting for session to settle…",
+                                    );
+                                    push(&state_tx, |s| {
+                                        s.status =
+                                            "Login detected. Finishing sign-in…".into();
+                                    });
+                                }
                             }
                         }
                         if signed_in {
-                            // Debounce: one false positive from a transient token race
-                            // still must not yank the login window mid-click.
+                            // ~3s settle so Chromium flushes cookies before we kill it.
+                            // Killing mid-redirect was coming back as an empty guest account.
                             login_signed_ticks = login_signed_ticks.saturating_add(1);
-                            if login_signed_ticks < 2 {
+                            if login_signed_ticks < 15 {
                                 continue;
                             }
-                            player = None;
+                            if let Some(p) = player.take() {
+                                let _ = p
+                                    .bridge()
+                                    .navigate("https://open.spotify.com/")
+                                    .await;
+                                tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+                                // Graceful close flushes the profile; hard kill often did not.
+                                let _ = p.bridge().browser_close().await;
+                                tokio::time::sleep(std::time::Duration::from_millis(700)).await;
+                            }
                             catalog = None;
                             if let Some(session) = chromium.as_mut() {
                                 match session.relaunch_as(false).await {
                                     Ok(()) => {
                                         cdp_url = session.cdp_url.clone();
-                                        log_line(&state_tx, "Signed in — Web Player back on Xvfb");
+                                        log_line(
+                                            &state_tx,
+                                            "Signed in — Web Player back on Xvfb",
+                                        );
                                     }
-                                    Err(err) => log_line(&state_tx, format!("hide relaunch: {err}")),
+                                    Err(err) => {
+                                        log_line(&state_tx, format!("hide relaunch: {err}"))
+                                    }
                                 }
                             }
                             match reattach(&cdp_url).await {
-                                Ok(p2) => {
-                                    if boot_ready(&p2, &mut catalog, &state_tx).await.is_ok() {
+                                Ok(p2) => match boot_ready(&p2, &mut catalog, &state_tx).await {
+                                    Ok(()) => {
                                         awaiting_login = false;
                                         login_signed_ticks = 0;
+                                        player = Some(p2);
                                     }
-                                    player = Some(p2);
-                                }
+                                    Err(err) => {
+                                        log_line(
+                                            &state_tx,
+                                            format!(
+                                                "session not ready after login ({err}) — keeping login window"
+                                            ),
+                                        );
+                                        // Cookies likely missed disk: show login again.
+                                        player = None;
+                                        if let Some(session) = chromium.as_mut() {
+                                            if session.relaunch_as(true).await.is_ok() {
+                                                cdp_url = session.cdp_url.clone();
+                                            }
+                                        }
+                                        match reattach(&cdp_url).await {
+                                            Ok(p3) => {
+                                                let _ = p3.bridge().inject().await;
+                                                player = Some(p3);
+                                            }
+                                            Err(e) => {
+                                                log_line(&state_tx, format!("reattach: {e}"))
+                                            }
+                                        }
+                                        awaiting_login = true;
+                                        login_signed_ticks = 0;
+                                        push(&state_tx, |s| {
+                                            s.phase = Phase::NeedsLogin;
+                                            s.login_visible = true;
+                                            s.status = "Sign-in did not stick. Please log in again in the Spotify window.".into();
+                                        });
+                                    }
+                                },
                                 Err(err) => {
                                     log_line(&state_tx, format!("reattach: {err}"));
                                     awaiting_login = false;
