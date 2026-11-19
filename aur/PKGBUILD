@@ -1,10 +1,10 @@
 # Maintainer: wesssimp
 pkgname=sloptify
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Desktop Spotify client for Linux"
 arch=('x86_64')
-url="https://github.com/wesssimp/Sloptify"
+url="https://github.com/xWess/Sloptify"
 license=('GPL-3.0-only')
 depends=(
   'chromium'
@@ -24,7 +24,7 @@ optdepends=(
   'xorg-server-xvfb: hidden Web Player display'
 )
 options=('!lto')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/wesssimp/Sloptify/archive/refs/tags/v$pkgver.tar.gz")
+source=("$pkgname-$pkgver.tar.gz::https://github.com/xWess/Sloptify/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 prepare() {

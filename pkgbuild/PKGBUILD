@@ -2,11 +2,11 @@
 # Local build: `cd pkgbuild && makepkg -si` (uses parent git tree)
 # AUR / release build: use the aur/ PKGBUILD
 pkgname=sloptify
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Desktop Spotify client for Linux"
 arch=('x86_64')
-url="https://github.com/wesssimp/Sloptify"
+url="https://github.com/xWess/Sloptify"
 license=('GPL-3.0-only')
 depends=(
   'chromium'

@@ -388,8 +388,13 @@ impl ChromiumSession {
             .parent()
             .map(Path::to_path_buf)
             .unwrap_or_else(|| PathBuf::from("."));
-        // Private bus first — engine MPRIS never hits the user session (Omarchy OSD, playerctl).
-        let mut dbus = Some(start_private_dbus(&share)?);
+        // Hidden engine: private D-Bus so Chromium never registers MPRIS as "Chromium".
+        // Visible login: keep the real session bus (portals / SSO / input method).
+        let mut dbus = if config.visible {
+            None
+        } else {
+            Some(start_private_dbus(&share)?)
+        };
 
         let mut cmd = Command::new(&config.binary);
         cmd.arg(format!("--remote-debugging-port={port}"))
@@ -397,7 +402,6 @@ impl ChromiumSession {
             // Window class / app id: Sloptify — not Chromium.
             .arg("--class=Sloptify")
             .arg("--name=Sloptify")
-            .arg("--app=https://open.spotify.com/")
             .arg("--no-first-run")
             .arg("--no-default-browser-check")
             .arg("--disable-sync")
@@ -415,6 +419,10 @@ impl ChromiumSession {
             .stderr(Stdio::null());
 
         if config.visible {
+            // Login window: real display, usable size, start on the accounts page.
+            cmd.arg("--app=https://accounts.spotify.com/login")
+                .arg("--window-size=1100,800")
+                .arg("--window-position=120,80");
             if std::env::var_os("WAYLAND_DISPLAY").is_some() {
                 cmd.arg("--ozone-platform=wayland");
             }
@@ -426,7 +434,8 @@ impl ChromiumSession {
         } else {
             let xvfb_display = find_free_display();
             xvfb = Some(start_xvfb(xvfb_display)?);
-            cmd.env("DISPLAY", format!(":{xvfb_display}"))
+            cmd.arg("--app=https://open.spotify.com/")
+                .env("DISPLAY", format!(":{xvfb_display}"))
                 .env_remove("WAYLAND_DISPLAY")
                 // Drop wrapper-injected Wayland preference if a shell wrapper is used.
                 .env("OZONE_PLATFORM", "x11")

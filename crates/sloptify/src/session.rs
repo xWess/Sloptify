@@ -209,6 +209,7 @@ pub fn spawn_session() -> SessionHandle {
             let mut catalog: Option<SpotifyCatalog> = None;
             let mut cdp_url = DEFAULT_CDP_URL.to_string();
             let mut awaiting_login = false;
+            let mut login_signed_ticks: u8 = 0;
             let mut stall_watch = StallWatch::default();
             let mut ad_watch = AdWatch::default();
             // Fast while playing so ads are silenced before they are heard; idle stays cheap.
@@ -328,14 +329,19 @@ pub fn spawn_session() -> SessionHandle {
                             }
                             if awaiting_login {
                                 let _ = p.bridge().inject().await;
-                                let url = p.page_url().await.unwrap_or_default();
-                                signed_in = match p.token_anonymous().await {
-                                    Ok(Some(false)) => true,
-                                    _ => snap.ready && !url.is_empty() && !is_login_url(&url),
-                                };
+                                // Only trust an explicit non-anonymous token. The old
+                                // "ready + not on /login" fallback closed the window the
+                                // moment open.spotify.com loaded for a guest session.
+                                signed_in = matches!(p.token_anonymous().await, Ok(Some(false)));
                             }
                         }
                         if signed_in {
+                            // Debounce: one false positive from a transient token race
+                            // still must not yank the login window mid-click.
+                            login_signed_ticks = login_signed_ticks.saturating_add(1);
+                            if login_signed_ticks < 2 {
+                                continue;
+                            }
                             player = None;
                             catalog = None;
                             if let Some(session) = chromium.as_mut() {
@@ -351,14 +357,18 @@ pub fn spawn_session() -> SessionHandle {
                                 Ok(p2) => {
                                     if boot_ready(&p2, &mut catalog, &state_tx).await.is_ok() {
                                         awaiting_login = false;
+                                        login_signed_ticks = 0;
                                     }
                                     player = Some(p2);
                                 }
                                 Err(err) => {
                                     log_line(&state_tx, format!("reattach: {err}"));
                                     awaiting_login = false;
+                                    login_signed_ticks = 0;
                                 }
                             }
+                        } else if awaiting_login {
+                            login_signed_ticks = 0;
                         }
                         continue;
                     }
@@ -406,14 +416,27 @@ pub fn spawn_session() -> SessionHandle {
                             if shown {
                                 match reattach(&cdp_url).await {
                                     Ok(p2) => {
+                                        // Land on the real login page; open.spotify.com alone
+                                        // is a guest shell and used to look "done".
+                                        if let Err(err) = p2
+                                            .bridge()
+                                            .navigate("https://accounts.spotify.com/login")
+                                            .await
+                                        {
+                                            log_line(
+                                                &state_tx,
+                                                format!("login navigate: {err}"),
+                                            );
+                                        }
                                         let _ = p2.bridge().inject().await;
                                         player = Some(p2);
                                         awaiting_login = true;
+                                        login_signed_ticks = 0;
                                         push(&state_tx, |s| {
                                             s.login_visible = true;
-                                            s.status = "Sign in in the Spotify window — Sloptify will hide it and continue.".into();
+                                            s.status = "Sign in in the Spotify window. Sloptify hides it when you are done.".into();
                                         });
-                                        log_line(&state_tx, "Login window on Wayland");
+                                        log_line(&state_tx, "Login window open");
                                     }
                                     Err(err) => {
                                         push(&state_tx, |s| {

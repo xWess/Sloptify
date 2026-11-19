@@ -1,6 +1,6 @@
 pkgbase = sloptify
 	pkgdesc = Desktop Spotify client for Linux
-	pkgver = 0.1.0
+	pkgver = 0.1.1
 	pkgrel = 1
 	url = https://github.com/xWess/Sloptify
 	arch = x86_64
@@ -20,7 +20,7 @@ pkgbase = sloptify
 	optdepends = playerctl: media-key helpers on some DEs
 	optdepends = xorg-server-xvfb: hidden Web Player display
 	options = !lto
-	source = sloptify-0.1.0.tar.gz::https://github.com/xWess/Sloptify/archive/refs/tags/v0.1.0.tar.gz
+	source = sloptify-0.1.1.tar.gz::https://github.com/xWess/Sloptify/archive/refs/tags/v0.1.1.tar.gz
 	sha256sums = SKIP
 
 pkgname = sloptify
