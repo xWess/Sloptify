@@ -21,8 +21,90 @@ struct TargetInfo {
     #[serde(rename = "type")]
     kind: String,
     url: String,
+    id: Option<String>,
     #[serde(rename = "webSocketDebuggerUrl")]
     ws_url: Option<String>,
+}
+
+fn is_spotify_family(url: &str) -> bool {
+    let u = url.to_ascii_lowercase();
+    u.starts_with("https://open.spotify.com")
+        || u.starts_with("https://accounts.spotify.com")
+        || u.starts_with("https://challenge.spotify.com")
+        || u.starts_with("https://login.spotify.com")
+}
+
+/// Pick the best existing page target. Login must win over inventing a new tab.
+fn pick_cdp_page(targets: &[TargetInfo]) -> Option<TargetInfo> {
+    let pages: Vec<&TargetInfo> = targets
+        .iter()
+        .filter(|t| t.kind == "page" && t.ws_url.is_some())
+        .collect();
+    if pages.is_empty() {
+        return None;
+    }
+    let rank = |url: &str| -> i32 {
+        let u = url.to_ascii_lowercase();
+        if u.contains("accounts.spotify.com") || u.contains("challenge.spotify.com") {
+            0
+        } else if u.starts_with(SPOTIFY_ORIGIN) {
+            1
+        } else if is_spotify_family(url) {
+            2
+        } else if u.starts_with("chrome://") || u.is_empty() || u == "about:blank" {
+            9
+        } else {
+            5
+        }
+    };
+    pages
+        .into_iter()
+        .min_by_key(|t| rank(&t.url))
+        .cloned()
+}
+
+async fn close_extra_pages(client: &reqwest::Client, base: &str, keep: &TargetInfo) {
+    let Ok(resp) = client.get(format!("{base}/json/list")).send().await else {
+        return;
+    };
+    let Ok(targets) = resp.json::<Vec<TargetInfo>>().await else {
+        return;
+    };
+    let keep_id = keep.id.as_deref().unwrap_or("");
+    let keep_ws = keep.ws_url.as_deref().unwrap_or("");
+    for t in targets {
+        if t.kind != "page" {
+            continue;
+        }
+        let same = t
+            .id
+            .as_deref()
+            .is_some_and(|id| !keep_id.is_empty() && id == keep_id)
+            || t.ws_url
+                .as_deref()
+                .is_some_and(|ws| !keep_ws.is_empty() && ws == keep_ws);
+        if same {
+            continue;
+        }
+        // Only close Spotify-family / blank extras — never random SSO popups mid-login
+        // once the user has opened Google/Apple (those are intentional).
+        let url = t.url.to_ascii_lowercase();
+        let closeable = url.starts_with(SPOTIFY_ORIGIN)
+            || url.starts_with("https://accounts.spotify.com")
+            || url.is_empty()
+            || url == "about:blank"
+            || url.starts_with("chrome://");
+        if !closeable {
+            continue;
+        }
+        if let Some(id) = t.id.as_deref() {
+            let _ = client
+                .get(format!("{base}/json/close/{id}"))
+                .send()
+                .await;
+            tracing::info!(%url, "closed extra Chromium page");
+        }
+    }
 }
 
 pub(crate) type WsWriter = futures_util::stream::SplitSink<
@@ -53,21 +135,24 @@ impl CdpHost {
             .await
             .context("parse CDP target list")?;
 
-        let page = if let Some(t) = targets.into_iter().find(|t| {
-            t.kind == "page" && t.url.starts_with(SPOTIFY_ORIGIN) && t.ws_url.is_some()
-        }) {
-            t
+        // Prefer an existing page. Never open a second window just because the
+        // login tab is on accounts.spotify.com instead of open.spotify.com —
+        // that was spawning a duplicate Chromium window on "Log in".
+        let page = if let Some(existing) = pick_cdp_page(&targets) {
+            existing
         } else {
-            let created: TargetInfo = client
+            client
                 .put(format!("{base}/json/new?{SPOTIFY_ORIGIN}"))
                 .send()
                 .await
                 .context("open Spotify tab")?
-                .json()
+                .json::<TargetInfo>()
                 .await
-                .context("parse new target")?;
-            created
+                .context("parse new target")?
         };
+
+        // Drop stray pages left over from a previous attach (login + player).
+        close_extra_pages(&client, base, &page).await;
 
         let ws_url = page
             .ws_url

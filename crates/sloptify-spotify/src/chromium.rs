@@ -399,9 +399,6 @@ impl ChromiumSession {
         let mut cmd = Command::new(&config.binary);
         cmd.arg(format!("--remote-debugging-port={port}"))
             .arg(format!("--user-data-dir={}", config.user_data_dir.display()))
-            // Window class / app id: Sloptify — not Chromium.
-            .arg("--class=Sloptify")
-            .arg("--name=Sloptify")
             .arg("--no-first-run")
             .arg("--no-default-browser-check")
             .arg("--disable-sync")
@@ -419,7 +416,7 @@ impl ChromiumSession {
             .stderr(Stdio::null());
 
         if config.visible {
-            // Login window: real display, usable size, start on the accounts page.
+            // One Wayland app window. No --class/--name with --app= (dual surfaces on Hyprland).
             cmd.arg("--app=https://accounts.spotify.com/login")
                 .arg("--window-size=1100,800")
                 .arg("--window-position=120,80");
@@ -434,7 +431,9 @@ impl ChromiumSession {
         } else {
             let xvfb_display = find_free_display();
             xvfb = Some(start_xvfb(xvfb_display)?);
-            cmd.arg("--app=https://open.spotify.com/")
+            cmd.arg("--class=Sloptify")
+                .arg("--name=Sloptify")
+                .arg("--app=https://open.spotify.com/")
                 .env("DISPLAY", format!(":{xvfb_display}"))
                 .env_remove("WAYLAND_DISPLAY")
                 // Drop wrapper-injected Wayland preference if a shell wrapper is used.

@@ -416,18 +416,9 @@ pub fn spawn_session() -> SessionHandle {
                             if shown {
                                 match reattach(&cdp_url).await {
                                     Ok(p2) => {
-                                        // Land on the real login page; open.spotify.com alone
-                                        // is a guest shell and used to look "done".
-                                        if let Err(err) = p2
-                                            .bridge()
-                                            .navigate("https://accounts.spotify.com/login")
-                                            .await
-                                        {
-                                            log_line(
-                                                &state_tx,
-                                                format!("login navigate: {err}"),
-                                            );
-                                        }
+                                        // Chromium already opened accounts.spotify.com via --app.
+                                        // Do not navigate again (that used to open a second window
+                                        // when CDP attached by creating open.spotify.com).
                                         let _ = p2.bridge().inject().await;
                                         player = Some(p2);
                                         awaiting_login = true;
