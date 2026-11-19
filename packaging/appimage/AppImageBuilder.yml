@@ -1,0 +1,22 @@
+# Built by CI via packaging/appimage/build.sh — kept as documentation of layout.
+version: 1
+AppDir:
+  path: ./AppDir
+  app_info:
+    id: app.sloptify.desktop
+    name: Sloptify
+    icon: sloptify
+    version: 0.1.0
+    exec: usr/bin/sloptify
+    exec_args: $@
+  files:
+    include: []
+    exclude:
+      - usr/share/man
+      - usr/share/doc
+  runtime:
+    env:
+      APPDIR_LIBRARY_PATH: $APPDIR/usr/lib
+AppImage:
+  arch: x86_64
+  update-info: gh-releases-zsync|xWess|Sloptify|latest|Sloptify-*x86_64.AppImage.zsync

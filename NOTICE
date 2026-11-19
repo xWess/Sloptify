@@ -1,0 +1,23 @@
+Sloptify (desktop)
+==================
+
+This project is a GPL-3.0 desktop Spotify client (formerly the Orpheon desktop port).
+
+Copyright (C) 2026 Sloptify desktop contributors
+
+Orpheon / Myspoti origin
+------------------------
+Portions of the architecture, player-bridge protocol, and the embedded
+`assets/bridge/player-bridge.js` derive from Orpheon (formerly Myspoti):
+
+  https://github.com/kota-zo/myspoti
+  https://github.com/kota-zo/Orpheon
+
+Those works are licensed under the GNU General Public License v3.0.
+See LICENSE in this directory and in the upstream repository.
+
+Immersive look
+--------------
+The Immersive visual direction on Android Orpheon comes from BitChord
+(https://github.com/kushagrasinghx/BitChord). Desktop Immersive styling,
+when added, carries the same credit.

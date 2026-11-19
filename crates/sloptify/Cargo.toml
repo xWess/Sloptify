@@ -1,0 +1,27 @@
+[package]
+name = "sloptify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Sloptify desktop music player (Arch-first)"
+
+[[bin]]
+name = "sloptify"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+dioxus = { version = "0.7", features = ["desktop"] }
+sloptify-ext.workspace = true
+sloptify-spotify.workspace = true
+serde = { workspace = true }
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tw_merge.workspace = true
+icons.workspace = true
+strum.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+mpris-server = { version = "0.11", features = ["tokio"] }

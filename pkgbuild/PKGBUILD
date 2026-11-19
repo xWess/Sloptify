@@ -1,0 +1,59 @@
+# Maintainer: wesssimp
+# Local build: `cd pkgbuild && makepkg -si` (uses parent git tree)
+# AUR / release build: use the aur/ PKGBUILD
+pkgname=sloptify
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Sloptify desktop — Spotify client (Web Player over CDP)"
+arch=('x86_64')
+url="https://github.com/wesssimp/Sloptify"
+license=('GPL-3.0-only')
+depends=(
+  'chromium'
+  'libxkbcommon'
+  'libxkbcommon-x11'
+  'wayland'
+  'libglvnd'
+  'xdotool'
+  'webkit2gtk-4.1'
+  'gtk3'
+  'dbus'
+  'pipewire-pulse'
+)
+makedepends=('cargo' 'rust' 'git')
+optdepends=(
+  'playerctl: media-key helpers on some DEs'
+  'xorg-server-xvfb: hidden Web Player display (usually pulled by chromium)'
+)
+provides=('sloptify')
+conflicts=('sloptify-git')
+options=('!lto')
+source=()
+sha256sums=()
+
+prepare() {
+  cd "$startdir/.."
+  export CARGO_HOME="${CARGO_HOME:-$srcdir/cargo-home}"
+  cargo fetch --locked 2>/dev/null || cargo fetch
+}
+
+build() {
+  cd "$startdir/.."
+  export CARGO_HOME="${CARGO_HOME:-$srcdir/cargo-home}"
+  export RUSTFLAGS="${RUSTFLAGS:-} -C target-cpu=native"
+  cargo build --release --locked -p sloptify 2>/dev/null || cargo build --release -p sloptify
+}
+
+package() {
+  cd "$startdir/.."
+  install -Dm755 target/release/sloptify "$pkgdir/usr/bin/sloptify"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 NOTICE "$pkgdir/usr/share/doc/$pkgname/NOTICE"
+  install -Dm644 pkgbuild/sloptify.desktop "$pkgdir/usr/share/applications/sloptify.desktop"
+  install -Dm644 crates/sloptify/assets/sloptify-cassette.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/sloptify.svg"
+  if [[ -f pkgbuild/hyprland-sloptify.conf ]]; then
+    install -Dm644 pkgbuild/hyprland-sloptify.conf \
+      "$pkgdir/usr/share/sloptify/hyprland-sloptify.conf"
+  fi
+}

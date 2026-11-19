@@ -1,0 +1,15 @@
+[package]
+name = "sloptify-ext"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Sloptify plugin marketplace + extension manifests (JS runtime next)"
+
+[dependencies]
+anyhow.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["process", "fs", "rt"] }
+zip.workspace = true

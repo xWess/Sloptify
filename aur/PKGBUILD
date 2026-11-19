@@ -1,0 +1,52 @@
+# Maintainer: wesssimp
+pkgname=sloptify
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Sloptify desktop — Spotify client (Web Player over CDP)"
+arch=('x86_64')
+url="https://github.com/wesssimp/Sloptify"
+license=('GPL-3.0-only')
+depends=(
+  'chromium'
+  'libxkbcommon'
+  'libxkbcommon-x11'
+  'wayland'
+  'libglvnd'
+  'xdotool'
+  'webkit2gtk-4.1'
+  'gtk3'
+  'dbus'
+  'pipewire-pulse'
+)
+makedepends=('cargo' 'rust')
+optdepends=(
+  'playerctl: media-key helpers on some DEs'
+  'xorg-server-xvfb: hidden Web Player display'
+)
+options=('!lto')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/wesssimp/Sloptify/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$srcdir/Sloptify-$pkgver"
+  export CARGO_HOME="${CARGO_HOME:-$srcdir/cargo-home}"
+  cargo fetch --locked
+}
+
+build() {
+  cd "$srcdir/Sloptify-$pkgver"
+  export CARGO_HOME="${CARGO_HOME:-$srcdir/cargo-home}"
+  cargo build --release --locked -p sloptify
+}
+
+package() {
+  cd "$srcdir/Sloptify-$pkgver"
+  install -Dm755 target/release/sloptify "$pkgdir/usr/bin/sloptify"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 NOTICE "$pkgdir/usr/share/doc/$pkgname/NOTICE"
+  install -Dm644 pkgbuild/sloptify.desktop "$pkgdir/usr/share/applications/sloptify.desktop"
+  install -Dm644 crates/sloptify/assets/sloptify-cassette.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/sloptify.svg"
+  install -Dm644 pkgbuild/hyprland-sloptify.conf \
+    "$pkgdir/usr/share/sloptify/hyprland-sloptify.conf"
+}

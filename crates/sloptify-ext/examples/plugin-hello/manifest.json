@@ -1,0 +1,16 @@
+{
+  "id": "example.hello",
+  "name": "Hello Plugin",
+  "version": "0.1.0",
+  "author": "Contributor",
+  "description": "Minimal Sloptify plugin template for marketplace contributors.",
+  "kind": "integration",
+  "tags": ["example", "template"],
+  "actions": [
+    {
+      "name": "player.trackChanged",
+      "why": "Demo hook when the current track changes",
+      "hosts": ["sloptify"]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/sloptify",
+    "crates/sloptify-spotify",
+    "crates/sloptify-ext",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+repository = "https://github.com/xWess/Sloptify"
+authors = ["Sloptify desktop contributors"]
+
+[workspace.dependencies]
+anyhow = "1"
+futures-util = "0.3"
+sloptify-ext = { path = "crates/sloptify-ext" }
+sloptify-spotify = { path = "crates/sloptify-spotify" }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util", "fs"] }
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+tw_merge = { version = "0.1.22", features = ["debug"] }
+icons = { version = "0.19.0", features = ["dioxus"] }
+strum = { version = "0.27", features = ["derive"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }

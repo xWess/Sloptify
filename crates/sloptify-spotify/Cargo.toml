@@ -1,0 +1,23 @@
+[package]
+name = "sloptify-spotify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Spotify Web Player host over CDP for Sloptify desktop"
+
+[[bin]]
+name = "inject_probe"
+path = "src/bin/inject_probe.rs"
+
+[dependencies]
+anyhow.workspace = true
+futures-util.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+url.workspace = true

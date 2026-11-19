@@ -1,0 +1,218 @@
+/* Apple Music–style scrubbers (seek + volume) for wry/WebKit/Chromium.
+   Custom rail/fill/knob are painted under a REAL (non-opacity-0) range input.
+   Chromium refuses reliable drag when the whole input is opacity:0. */
+
+:root {
+  --apple-track: rgba(255, 255, 255, 0.22);
+  --apple-fill: #ffffff;
+  --apple-knob: #ffffff;
+}
+
+.apple-slider {
+  --pct: 0%;
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.apple-slider-rail,
+.apple-slider-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  pointer-events: none;
+  transition: height 100ms ease, margin-top 100ms ease;
+}
+.apple-slider-rail {
+  right: 0;
+  background: var(--apple-track);
+}
+.apple-slider-fill {
+  width: var(--pct);
+  max-width: 100%;
+  background: var(--apple-fill);
+  z-index: 1;
+}
+.apple-slider:hover .apple-slider-rail,
+.apple-slider:hover .apple-slider-fill,
+.apple-slider:active .apple-slider-rail,
+.apple-slider:active .apple-slider-fill,
+.apple-slider:focus-within .apple-slider-rail,
+.apple-slider:focus-within .apple-slider-fill {
+  height: 6px;
+  margin-top: -3px;
+}
+
+.apple-slider-knob {
+  position: absolute;
+  top: 50%;
+  left: var(--pct);
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  margin-left: -6px;
+  border-radius: 999px;
+  background: var(--apple-knob);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transform: scale(0.55);
+  transition: opacity 100ms ease, transform 100ms ease;
+}
+.apple-slider.seek:hover .apple-slider-knob,
+.apple-slider.seek:active .apple-slider-knob,
+.apple-slider.seek:focus-within .apple-slider-knob,
+.apple-slider.seek.is-scrubbing .apple-slider-knob {
+  opacity: 1;
+  transform: scale(1);
+}
+.apple-slider.seek.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.apple-slider.seek.is-disabled .apple-slider-knob {
+  opacity: 0;
+}
+.apple-slider.volume .apple-slider-knob {
+  opacity: 1;
+  transform: scale(1);
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  margin-left: -5.5px;
+}
+.apple-slider.volume:active .apple-slider-knob {
+  transform: scale(1.08);
+}
+
+/*
+  Hit layer: opacity MUST stay ~1 for Chromium/WebKit drag + click-to-seek.
+  Track/thumb are fully transparent so only our painted rail shows through.
+*/
+.apple-slider > input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 1;
+  cursor: pointer;
+  z-index: 3;
+  background: transparent;
+  outline: none;
+  touch-action: none;
+  /* Avoid browser accent painting a second fill under our custom rail */
+  accent-color: transparent;
+}
+.apple-slider > input[type="range"]:disabled {
+  cursor: not-allowed;
+}
+.apple-slider:active > input[type="range"],
+.apple-slider.is-scrubbing > input[type="range"] {
+  cursor: grabbing;
+}
+
+.apple-slider > input[type="range"]::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  border: none;
+}
+.apple-slider > input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  /* Tall thumb = easy grab; wide enough for Chromium pointer capture */
+  width: 20px;
+  height: 28px;
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.apple-slider > input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  border: none;
+}
+.apple-slider > input[type="range"]::-moz-range-progress {
+  background: transparent;
+  border: none;
+}
+.apple-slider > input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 28px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Player bar */
+.player .apple-slider {
+  height: 22px;
+}
+.player .apple-slider.volume {
+  flex: 0 0 100px;
+  width: 100px;
+  max-width: 100px;
+}
+.player .apple-slider-rail,
+.player .apple-slider-fill {
+  height: 3px;
+  margin-top: -1.5px;
+}
+.player .apple-slider:hover .apple-slider-rail,
+.player .apple-slider:hover .apple-slider-fill,
+.player .apple-slider:active .apple-slider-rail,
+.player .apple-slider:active .apple-slider-fill,
+.player .apple-slider:focus-within .apple-slider-rail,
+.player .apple-slider:focus-within .apple-slider-fill {
+  height: 5px;
+  margin-top: -2.5px;
+}
+.player .apple-slider > input[type="range"]::-webkit-slider-runnable-track {
+  height: 22px;
+}
+.player .apple-slider > input[type="range"]::-webkit-slider-thumb {
+  height: 22px;
+  width: 18px;
+}
+.player .apple-slider.volume .apple-slider-knob {
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  margin-left: -5px;
+}
+
+/* Now Playing — same SeekScrub as the player bar */
+.np-seek .apple-slider,
+.np-tape-seek .apple-slider,
+.bar-seek.np-tape-seek .apple-slider {
+  height: 22px;
+}
+.np-vol .apple-slider.volume,
+.np-tape-vol .apple-slider.volume {
+  flex: 0 0 180px;
+  width: 180px;
+  max-width: 180px;
+}

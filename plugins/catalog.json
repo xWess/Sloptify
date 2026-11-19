@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-18",
+  "plugins": [
+    {
+      "id": "sloptify.keyboard-nav",
+      "name": "Keyboard Nav",
+      "version": "0.1.0",
+      "author": "Sloptify",
+      "description": "Arrow keys + space for transport; j/k for next/previous.",
+      "kind": "action",
+      "homepage": "https://github.com/xWess/Sloptify",
+      "downloadUrl": null,
+      "tags": ["productivity", "input"]
+    },
+    {
+      "id": "sloptify.now-playing-notify",
+      "name": "Desktop Notify",
+      "version": "0.1.0",
+      "author": "Sloptify",
+      "description": "Show a desktop notification when the track changes.",
+      "kind": "integration",
+      "homepage": "https://github.com/xWess/Sloptify",
+      "downloadUrl": null,
+      "tags": ["desktop", "notify"]
+    },
+    {
+      "id": "sloptify.dense-lists",
+      "name": "Dense Lists",
+      "version": "0.1.0",
+      "author": "Sloptify",
+      "description": "Tighter row spacing for large playlists on small screens.",
+      "kind": "theme",
+      "homepage": "https://github.com/xWess/Sloptify",
+      "downloadUrl": null,
+      "tags": ["ui", "theme"]
+    },
+    {
+      "id": "community.scrobble-hook",
+      "name": "Scrobble Hook",
+      "version": "0.1.0",
+      "author": "Community",
+      "description": "Skeleton for Last.fm / ListenBrainz scrobbling contributors.",
+      "kind": "integration",
+      "homepage": null,
+      "downloadUrl": null,
+      "tags": ["scrobble", "community"]
+    }
+  ]
+}

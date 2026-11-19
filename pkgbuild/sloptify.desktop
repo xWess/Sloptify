@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Sloptify
+Comment=Music player for your Spotify account
+Exec=sloptify
+Icon=sloptify
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;
+StartupWMClass=Sloptify

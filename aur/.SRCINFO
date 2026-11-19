@@ -1,0 +1,26 @@
+pkgbase = sloptify
+	pkgdesc = Sloptify desktop — Spotify client (Web Player over CDP)
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/xWess/Sloptify
+	arch = x86_64
+	license = GPL-3.0-only
+	makedepends = cargo
+	makedepends = rust
+	depends = chromium
+	depends = libxkbcommon
+	depends = libxkbcommon-x11
+	depends = wayland
+	depends = libglvnd
+	depends = xdotool
+	depends = webkit2gtk-4.1
+	depends = gtk3
+	depends = dbus
+	depends = pipewire-pulse
+	optdepends = playerctl: media-key helpers on some DEs
+	optdepends = xorg-server-xvfb: hidden Web Player display
+	options = !lto
+	source = sloptify-0.1.0.tar.gz::https://github.com/xWess/Sloptify/archive/refs/tags/v0.1.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = sloptify
